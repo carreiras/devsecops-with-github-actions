@@ -21,4 +21,4 @@ runs:
 
     - name: "run Soma"
       shell: bash
-      run: python soma.py -a=${{ inputs.a }} -b=${{ inputs.b }}
+      run: python ${{ github.action_path }}/soma.py --a=${{ inputs.a }} --b=${{ inputs.b }}
