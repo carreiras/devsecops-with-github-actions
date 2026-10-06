@@ -57,6 +57,8 @@ flowchart LR
 ├── .github/
 │   └── workflows/
 │       └── main.yaml  # Workflow de CI (build, test e deploy)
+├── action.yaml        # Action customizada "Soma" (composite)
+├── soma.py            # Script Python executado pela action
 └── README.md
 ```
 
@@ -68,7 +70,7 @@ flowchart LR
 
 ### `CI` — [`.github/workflows/main.yaml`](.github/workflows/main.yaml)
 
-Primeiro workflow do repositório. Ele mostra a anatomia básica de um GitHub Action, como **encadear jobs** com `needs` e como usar **mais de um gatilho** (push e agendamento).
+Primeiro workflow do repositório. Ele mostra a anatomia básica de um GitHub Action, como **encadear jobs** com `needs`, como usar **mais de um gatilho** (push e agendamento), como **consumir uma action customizada** e como **publicar artefatos**.
 
 | Item | Valor |
 | --- | --- |
@@ -84,7 +86,7 @@ flowchart LR
 | Job | Depende de | O que faz |
 | --- | --- | --- |
 | `build` | — | Etapa de build (por enquanto, um `echo` de exemplo) |
-| `test` | `build` | Etapa de testes (por enquanto, um `echo` de exemplo) |
+| `test` | `build` | Executa a action [Soma](#soma--actionyaml) com `a: 1` e `b: 2`, gera o arquivo `test.txt` e publica esse arquivo como artefato com `actions/upload-artifact@v4` |
 | `deploy` | `test` | Etapa de deploy (por enquanto, um `echo` de exemplo) |
 
 #### 💡 Conceitos praticados
@@ -94,8 +96,41 @@ flowchart LR
 - **Múltiplos gatilhos (`on`):** um workflow pode reagir a vários eventos. Aqui ele roda a cada `push` na `main` **e** todo dia via `schedule`.
 - **`schedule` (cron):** a expressão `47 12 * * *` significa *minuto 47, hora 12, todos os dias*. O horário é sempre em **UTC**, ou seja, 09:47 no horário de Brasília (UTC-3). Execuções agendadas rodam apenas na branch padrão, podem atrasar em horários de pico e, em repositórios públicos, são desativadas após 60 dias sem atividade.
 - **Quality gate:** se um job falhar, os jobs seguintes não executam. É assim que, mais adiante, as verificações de segurança vão bloquear um deploy inseguro.
+- **Usar uma action (`uses`):** o step `Test` referencia a action deste próprio repositório com `uses: carreiras/devsecops-with-github-actions@main` e passa os valores pelo `with`. Como aponta para a branch `main`, o workflow sempre executa a versão da action que está publicada nela.
+- **Artefatos:** o `actions/upload-artifact@v4` salva arquivos gerados no job (aqui, o `test.txt`) para download na página da execução, na aba **Actions**. Sem `name`, o artefato recebe o nome padrão `artifact`.
 
-> 🧩 Os steps ainda são *placeholders*. Nos próximos módulos eles serão trocados por comandos reais (com `actions/checkout` para baixar o código) e pelas etapas de segurança do pipeline.
+> 🧩 Os jobs `build` e `deploy` ainda são *placeholders*. Nos próximos módulos eles serão trocados por comandos reais e pelas etapas de segurança do pipeline.
+
+---
+
+## 🧱 Actions customizadas
+
+### `Soma` — [`action.yaml`](action.yaml)
+
+Action do tipo **composite** que recebe dois números e imprime a soma, usando o script [`soma.py`](soma.py).
+
+| Item | Valor |
+| --- | --- |
+| **Tipo** | `composite` |
+| **Inputs** | `a` e `b` (obrigatórios) |
+| **Steps** | `actions/checkout@v2` → `actions/setup-python@v4` (Python 3.10) → `python soma.py` |
+
+Exemplo de uso em um workflow:
+
+```yaml
+- name: Test
+  uses: carreiras/devsecops-with-github-actions@main
+  with:
+    a: 1
+    b: 2
+```
+
+#### 💡 Conceitos praticados
+
+- **Composite action:** junta vários steps em uma action reutilizável. Ela é definida em um arquivo `action.yaml` na raiz do repositório, e cada step com `run` precisa declarar o `shell`.
+- **`inputs`:** os valores passados no `with` do workflow ficam disponíveis dentro da action como `${{ inputs.a }}` e `${{ inputs.b }}`.
+- **`github.action_path`:** é o diretório onde a action foi baixada no runner. Usar `${{ github.action_path }}/soma.py` garante que o script da action seja encontrado, mesmo quando a action é usada por outro repositório.
+- **`argparse`:** o `soma.py` lê os argumentos `--a` e `--b` e converte para `int` antes de somar. Sem a conversão, `"1" + "2"` resultaria em `"12"`.
 
 ---
 
@@ -104,6 +139,8 @@ flowchart LR
 - [x] Primeiro workflow de CI (build → test → deploy)
 - [x] Separação em jobs encadeados com `needs`
 - [x] Execução agendada com `schedule` (cron)
+- [x] Action customizada (composite) com inputs
+- [x] Publicação de artefatos com `upload-artifact`
 - [ ] Hardening do workflow (`permissions`, pinning por SHA)
 - [ ] Secret Scanning
 - [ ] SAST
