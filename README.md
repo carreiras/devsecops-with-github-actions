@@ -55,12 +55,63 @@ flowchart LR
 ```text
 .
 ├── .github/
-│   └── workflows/     # Workflows do GitHub Actions
-├── docs/              # Anotações e explicações de cada etapa
+│   └── workflows/
+│       └── main.yaml  # Workflow de CI (build, test e deploy)
 └── README.md
 ```
 
 > A estrutura será expandida conforme os módulos forem adicionados.
+
+---
+
+## ⚙️ Workflows
+
+### `CI` — [`.github/workflows/main.yaml`](.github/workflows/main.yaml)
+
+Primeiro workflow do repositório. Ele mostra a anatomia básica de um GitHub Action, como **encadear jobs** com `needs` e como usar **mais de um gatilho** (push e agendamento).
+
+| Item | Valor |
+| --- | --- |
+| **Gatilhos** | `push` na branch `main` e `schedule` diário (`cron: '47 12 * * *'`) |
+| **Runner** | `ubuntu-latest` (em todos os jobs) |
+| **Jobs** | `build` → `test` → `deploy` |
+
+```mermaid
+flowchart LR
+    A[🔨 build] -->|needs| B[🧪 test] -->|needs| C[🚀 deploy]
+```
+
+| Job | Depende de | O que faz |
+| --- | --- | --- |
+| `build` | — | Etapa de build (por enquanto, um `echo` de exemplo) |
+| `test` | `build` | Etapa de testes (por enquanto, um `echo` de exemplo) |
+| `deploy` | `test` | Etapa de deploy (por enquanto, um `echo` de exemplo) |
+
+#### 💡 Conceitos praticados
+
+- **Jobs x Steps:** cada *job* roda em um runner próprio e isolado; os *steps* são os comandos executados dentro de um job.
+- **`needs`:** por padrão, os jobs rodam em **paralelo**. O `needs` cria uma dependência e força a execução em **sequência**: o `test` só começa se o `build` passar, e o `deploy` só começa se o `test` passar.
+- **Múltiplos gatilhos (`on`):** um workflow pode reagir a vários eventos. Aqui ele roda a cada `push` na `main` **e** todo dia via `schedule`.
+- **`schedule` (cron):** a expressão `47 12 * * *` significa *minuto 47, hora 12, todos os dias*. O horário é sempre em **UTC**, ou seja, 09:47 no horário de Brasília (UTC-3). Execuções agendadas rodam apenas na branch padrão, podem atrasar em horários de pico e, em repositórios públicos, são desativadas após 60 dias sem atividade.
+- **Quality gate:** se um job falhar, os jobs seguintes não executam. É assim que, mais adiante, as verificações de segurança vão bloquear um deploy inseguro.
+
+> 🧩 Os steps ainda são *placeholders*. Nos próximos módulos eles serão trocados por comandos reais (com `actions/checkout` para baixar o código) e pelas etapas de segurança do pipeline.
+
+---
+
+## 🗺️ Progresso
+
+- [x] Primeiro workflow de CI (build → test → deploy)
+- [x] Separação em jobs encadeados com `needs`
+- [x] Execução agendada com `schedule` (cron)
+- [ ] Hardening do workflow (`permissions`, pinning por SHA)
+- [ ] Secret Scanning
+- [ ] SAST
+- [ ] SCA
+- [ ] Container Scan
+- [ ] IaC Scanning
+- [ ] DAST
+- [ ] Deploy seguro (CD)
 
 ---
 
@@ -72,14 +123,14 @@ flowchart LR
    git clone https://github.com/<seu-usuario>/devsecops-with-github-actions.git
    ```
 3. Explore os workflows em `.github/workflows/`
-4. Faça um push e acompanhe a execução na aba **Actions** do GitHub
+4. Faça um push na branch `main` e acompanhe a execução do workflow **CI** na aba **Actions** do GitHub
 
 ---
 
-## ✅ Boas práticas seguidas
+## ✅ Boas práticas que serão aplicadas
 
 | Prática | Por quê |
-|---|---|
+| --- | --- |
 | `permissions:` mínimas em cada workflow | Reduz o impacto caso um token seja comprometido |
 | Actions fixadas por SHA do commit | Evita ataques à cadeia de suprimentos |
 | Segredos apenas via `secrets` | Nunca expor credenciais no código |
