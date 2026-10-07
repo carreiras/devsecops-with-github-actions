@@ -70,7 +70,7 @@ flowchart LR
 
 ### `CI` — [`.github/workflows/main.yaml`](.github/workflows/main.yaml)
 
-Primeiro workflow do repositório. Ele mostra a anatomia básica de um GitHub Action, como **encadear jobs** com `needs`, como usar **mais de um gatilho** (push e agendamento), como **consumir uma action customizada** e como **publicar artefatos**.
+Primeiro workflow do repositório. Ele mostra a anatomia básica de um GitHub Action, como **encadear jobs** com `needs`, como usar **mais de um gatilho** (push e agendamento), como **consumir uma action customizada**, como **publicar artefatos** e como **rodar uma imagem Docker**.
 
 | Item | Valor |
 | --- | --- |
@@ -87,7 +87,7 @@ flowchart LR
 | --- | --- | --- |
 | `build` | — | Etapa de build (por enquanto, um `echo` de exemplo) |
 | `test` | `build` | Executa a action [Soma](#soma--actionyaml) com `a: 1` e `b: 2`, gera o arquivo `test.txt` e publica esse arquivo como artefato com `actions/upload-artifact@v4` |
-| `deploy` | `test` | Etapa de deploy (por enquanto, um `echo` de exemplo) |
+| `deploy` | `test` | Executa a imagem [`ewertoncarreira/hello-docker`](https://hub.docker.com/r/ewertoncarreira/hello-docker) do Docker Hub com `docker run` |
 
 #### 💡 Conceitos praticados
 
@@ -97,9 +97,10 @@ flowchart LR
 - **`schedule` (cron):** a expressão `47 12 * * *` significa *minuto 47, hora 12, todos os dias*. O horário é sempre em **UTC**, ou seja, 09:47 no horário de Brasília (UTC-3). Execuções agendadas rodam apenas na branch padrão, podem atrasar em horários de pico e, em repositórios públicos, são desativadas após 60 dias sem atividade.
 - **Quality gate:** se um job falhar, os jobs seguintes não executam. É assim que, mais adiante, as verificações de segurança vão bloquear um deploy inseguro.
 - **Usar uma action (`uses`):** o step `Test` referencia a action deste próprio repositório com `uses: carreiras/devsecops-with-github-actions@main` e passa os valores pelo `with`. Como aponta para a branch `main`, o workflow sempre executa a versão da action que está publicada nela.
+- **Docker no runner:** o `ubuntu-latest` já vem com o Docker instalado, então o `docker run` baixa a imagem pública do Docker Hub e executa o container sem nenhuma configuração extra. Como não há tag, é usada a `latest`. Em um pipeline seguro, o ideal é fixar uma versão (`:1.0`) ou um digest (`@sha256:...`).
 - **Artefatos:** o `actions/upload-artifact@v4` salva arquivos gerados no job (aqui, o `test.txt`) para download na página da execução, na aba **Actions**. Sem `name`, o artefato recebe o nome padrão `artifact`.
 
-> 🧩 Os jobs `build` e `deploy` ainda são *placeholders*. Nos próximos módulos eles serão trocados por comandos reais e pelas etapas de segurança do pipeline.
+> 🧩 O job `build` ainda é um *placeholder*, e o `deploy` só executa o container dentro do runner, que é descartado ao fim do job. Nos próximos módulos eles serão trocados por etapas reais de build, deploy e segurança do pipeline.
 
 ---
 
