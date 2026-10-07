@@ -34,5 +34,5 @@ jobs:
     needs: test
     steps:
       - name: Deploy
-        run: echo "Deploy"
+        run: docker run ewertoncarreira/hello-docker
 
